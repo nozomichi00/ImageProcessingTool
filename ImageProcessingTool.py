@@ -127,8 +127,6 @@ class App(customtkinter.CTk):
         self.second_frame_textbox = customtkinter.CTkTextbox(self.second_frame)
         self.second_frame_textbox.grid(row=1, column=0, padx=(20, 20), pady=(20, 20), sticky="nsew")
         self.second_frame_textbox.insert("0.0", '\
-            1. 程式運行時，螢幕保護程式將被禁用，包含台積電的Screen Lock。\n\
-            1. The screen saver will be disabled while the program is running.\n\
             by Lucas 20221204')
         self.second_frame_textbox.configure(state="disabled")
         
