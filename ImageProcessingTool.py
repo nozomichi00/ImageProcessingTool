@@ -1,5 +1,6 @@
 import os
 import shutil
+import tkinter as tk
 from tkinter import filedialog
 
 import cv2
@@ -98,20 +99,23 @@ class App(customtkinter.CTk):
         self.ExportButton = customtkinter.CTkButton(self.main_frame, text="Select", width=30, height=30, font=customtkinter.CTkFont(weight="bold"), command=lambda: self.main_button_event(self.ExportEntry))
         self.ExportButton.grid(row=2, column=2, padx=(20, 0), pady=(10, 0), sticky="wn")
         
-        # 模糊率設定
-        self.VagueThresholdLabel = customtkinter.CTkLabel(self.main_frame, text="模糊率閾值", height=30)
+        # 清晰度設定
+        self.VagueThresholdLabel = customtkinter.CTkLabel(self.main_frame, text="清晰度閾值", height=30, font=customtkinter.CTkFont(weight="bold"))
         self.VagueThresholdLabel.grid(row=3, column=0, padx=(20, 0), pady=(10, 0), sticky="wn")
-        self.VagueThresholdEntry = customtkinter.CTkEntry(self.main_frame, placeholder_text="N/A")
+        self.VagueThresholdEntry = customtkinter.CTkEntry(self.main_frame, placeholder_text="0.0 ~ 100.0")
         self.VagueThresholdEntry.grid(row=3, column=1, padx=(20, 0), pady=(10, 0), sticky="wn")
         
         # Create operation frame
         self.operation_frame = customtkinter.CTkFrame(self.home_frame)
         self.operation_frame.grid(row=2, column=0, padx=(20, 20), pady=(10, 20), sticky="nsew")
 
-        # operation frame → Start button
-        self.operation_button_start = customtkinter.CTkButton(self.operation_frame, text="Start", width=70, height=30, font=customtkinter.CTkFont(weight="bold"), command=lambda: self.start_event())
-        self.operation_button_start.grid(row=0, column=0, padx=(20, 20), pady=(10, 10), sticky="nsew")
+        # Laplacian 算子
+        self.Laplacian_Button = customtkinter.CTkButton(self.operation_frame, text="Laplacian算子", width=100, height=30, font=customtkinter.CTkFont(weight="bold"), command=lambda: self.Laplacian_event())
+        self.Laplacian_Button.grid(row=0, column=0, padx=(20, 20), pady=(10, 10), sticky="nsew")
         
+        # 方差方法
+        self.VarianceMethod_Button = customtkinter.CTkButton(self.operation_frame, text="方差方法計算", width=100, height=30, font=customtkinter.CTkFont(weight="bold"), command=lambda: self.VarianceMethod_event())
+        self.VarianceMethod_Button.grid(row=0, column=1, padx=(20, 20), pady=(10, 10), sticky="nsew")
         
         ##############################
         # second frame
@@ -126,8 +130,7 @@ class App(customtkinter.CTk):
         
         self.second_frame_textbox = customtkinter.CTkTextbox(self.second_frame)
         self.second_frame_textbox.grid(row=1, column=0, padx=(20, 20), pady=(20, 20), sticky="nsew")
-        self.second_frame_textbox.insert("0.0", '\
-            by Lucas 20221204')
+        self.second_frame_textbox.insert("0.0", 'by Lucas 20221204')
         self.second_frame_textbox.configure(state="disabled")
         
         ##############################
@@ -212,57 +215,102 @@ class App(customtkinter.CTk):
         value1.delete(0, "end")
         value1.insert(0, filename)
     
-    def start_event(self):
+    def Laplacian_event(self):
         RunningSwitch = True
         
-        # 取得資料夾路徑
         ImportFolderPath = self.ImportEntry.get()
         if len(ImportFolderPath) < 3:
-            print("請選擇輸入資料夾")
+            tk.messagebox.showerror("Error", "錯誤訊息: 請選擇Import Folder!")
             RunningSwitch = False
         
         ExportFolderPath = self.ExportEntry.get()
         if len(ExportFolderPath) < 3:
-            print("請選擇輸入資料夾")
+            tk.messagebox.showerror("Error", "錯誤訊息: 請選擇Export Folder!")
             RunningSwitch = False
 
-        # 取得模糊率
         VagueThreshold = self.VagueThresholdEntry.get()
         if len(VagueThreshold) < 1:
-            print("請選擇模糊率")
+            tk.messagebox.showerror("Error", "錯誤訊息: 請填寫清晰度!")
             RunningSwitch = False
         else:
             VagueThreshold = float(VagueThreshold)
 
-        # 確認執行條件
         if RunningSwitch:
             ProcessCount = 0
             for filename in os.listdir(ImportFolderPath):
+                # Path Setting
                 image_path = ImportFolderPath + "/" + filename
                 image_path = image_path.replace("/", "\\\\")
                 
+                # Change RWA image for RGB
                 raw = rawpy.imread(image_path)
                 rgb = raw.postprocess()
 
-                # 转换为灰度图像
+                # 轉會為灰階圖像
                 gray_image = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
 
-                # 计算拉普拉斯算子
+                # 計算 Laplacian 算子
                 laplacian = cv2.Laplacian(gray_image, cv2.CV_64F)
                 abs_laplacian = cv2.convertScaleAbs(laplacian)
 
-                # 计算平均灰度值和平均拉普拉斯值
+                # 計算平均灰度值和平均拉普拉斯值
                 mean = cv2.mean(gray_image)[0]
                 mean_laplacian = cv2.mean(abs_laplacian)[0]
 
-                # 计算模糊率
+                # 計算清晰率
                 blur = mean_laplacian / mean
                 blur = blur * 1000
                 if blur > VagueThreshold:
                     shutil.copy(image_path, ExportFolderPath)
                     
                 ProcessCount = ProcessCount + 1
-                self.ProcessTextbox.insert("0.0", ("已處理張數: " + str(ProcessCount) + "\t\t檔案名稱: " + filename + "\t\t\t模糊率: " + str(blur)[0:6] + "\n"))
+                self.ProcessTextbox.insert("0.0", ("已處理張數: " + str(ProcessCount) + "\t\t檔案名稱: " + filename + "\t\t\t清晰率: " + str(blur)[0:6] + "\n"))
+                self.update()
+
+    # 方差方法計算
+    def VarianceMethod_event(self):
+        RunningSwitch = True
+        
+        ImportFolderPath = self.ImportEntry.get()
+        if len(ImportFolderPath) < 3:
+            tk.messagebox.showerror("Error", "錯誤訊息: 請選擇Import Folder!")
+            RunningSwitch = False
+        
+        ExportFolderPath = self.ExportEntry.get()
+        if len(ExportFolderPath) < 3:
+            tk.messagebox.showerror("Error", "錯誤訊息: 請選擇Export Folder!")
+            RunningSwitch = False
+
+        VagueThreshold = self.VagueThresholdEntry.get()
+        if len(VagueThreshold) < 1:
+            tk.messagebox.showerror("Error", "錯誤訊息: 請填寫清晰度!")
+            RunningSwitch = False
+        else:
+            VagueThreshold = float(VagueThreshold)
+
+        if RunningSwitch:
+            ProcessCount = 0
+            for filename in os.listdir(ImportFolderPath):
+                # Path Setting
+                image_path = ImportFolderPath + "/" + filename
+                image_path = image_path.replace("/", "\\\\")
+                
+                # Change RWA image for RGB
+                raw = rawpy.imread(image_path)
+                rgb = raw.postprocess()
+
+                # 轉換為灰階圖像
+                gray_image = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
+
+                # 計算 Laplacian 算子(方差方法計算)
+                laplacian = cv2.Laplacian(gray_image, cv2.CV_64F)
+                lap_var = laplacian.var()
+
+                if lap_var > VagueThreshold:
+                    shutil.copy(image_path, ExportFolderPath)
+                    
+                ProcessCount = ProcessCount + 1
+                self.ProcessTextbox.insert("0.0", ("已處理張數: " + str(ProcessCount) + "\t\t檔案名稱: " + filename + "\t\t\t清晰率: " + str(lap_var)[0:6] + "\n"))
                 self.update()
 
 if __name__ == "__main__":
