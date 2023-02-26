@@ -215,6 +215,7 @@ class App(customtkinter.CTk):
         value1.delete(0, "end")
         value1.insert(0, filename)
     
+    # 拉普拉斯算子 (Laplace operator)
     def Laplacian_event(self):
         RunningSwitch = True
         
@@ -267,7 +268,7 @@ class App(customtkinter.CTk):
                 self.ProcessTextbox.insert("0.0", ("已處理張數: " + str(ProcessCount) + "\t\t檔案名稱: " + filename + "\t\t\t清晰率: " + str(blur)[0:6] + "\n"))
                 self.update()
 
-    # 方差方法計算
+    # Variance(變異數計算)
     def VarianceMethod_event(self):
         RunningSwitch = True
         
@@ -302,7 +303,7 @@ class App(customtkinter.CTk):
                 # 轉換為灰階圖像
                 gray_image = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
 
-                # 計算 Laplacian 算子(方差方法計算)
+                # Variance(變異數計算)
                 laplacian = cv2.Laplacian(gray_image, cv2.CV_64F)
                 lap_var = laplacian.var()
 
