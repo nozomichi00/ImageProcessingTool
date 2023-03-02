@@ -214,107 +214,108 @@ class App(customtkinter.CTk):
         filename =  filedialog.askdirectory(title = "Select file")
         value1.delete(0, "end")
         value1.insert(0, filename)
-    
+                
     # 拉普拉斯算子 (Laplace operator)
     def Laplacian_event(self):
-        RunningSwitch = True
-        
-        ImportFolderPath = self.ImportEntry.get()
-        if len(ImportFolderPath) < 3:
-            tk.messagebox.showerror("Error", "錯誤訊息: 請選擇Import Folder!")
-            RunningSwitch = False
-        
-        ExportFolderPath = self.ExportEntry.get()
-        if len(ExportFolderPath) < 3:
-            tk.messagebox.showerror("Error", "錯誤訊息: 請選擇Export Folder!")
-            RunningSwitch = False
+        import_folder_path = self.ImportEntry.get()
+        export_folder_path = self.ExportEntry.get()
+        vague_threshold = self.VagueThresholdEntry.get()
 
-        VagueThreshold = self.VagueThresholdEntry.get()
-        if len(VagueThreshold) < 1:
-            tk.messagebox.showerror("Error", "錯誤訊息: 請填寫清晰度!")
-            RunningSwitch = False
+        if len(import_folder_path) < 3:
+            self.show_error_message("請選擇Import Folder!")
+            return
+
+        if len(export_folder_path) < 3:
+            self.show_error_message("請選擇Export Folder!")
+            return
+
+        if len(vague_threshold) < 1:
+            self.show_error_message("請填寫清晰度!")
+            return
         else:
-            VagueThreshold = float(VagueThreshold)
+            vague_threshold = float(vague_threshold)
 
-        if RunningSwitch:
-            ProcessCount = 0
-            for filename in os.listdir(ImportFolderPath):
-                # Path Setting
-                image_path = ImportFolderPath + "/" + filename
-                image_path = image_path.replace("/", "\\\\")
+        process_count = 0
+        for filename in os.listdir(import_folder_path):
+            # Path Setting
+            image_path = os.path.join(import_folder_path, filename)
+
+            # Change RAW image to RGB
+            raw = rawpy.imread(image_path)
+            rgb = raw.postprocess()
+
+            # Convert to grayscale image
+            gray_image = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
+
+            # Calculate Laplacian operator
+            laplacian = cv2.Laplacian(gray_image, cv2.CV_64F)
+            abs_laplacian = cv2.convertScaleAbs(laplacian)
+
+            # Calculate sharpness value
+            mean = cv2.mean(gray_image)[0]
+            mean_laplacian = cv2.mean(abs_laplacian)[0]
+            blur = mean_laplacian / mean * 1000
+
+            if blur > vague_threshold:
+                shutil.copy(image_path, export_folder_path)
+
+            process_count += 1
+            self.update_process_textbox(process_count, filename, blur)
                 
-                # Change RWA image for RGB
-                raw = rawpy.imread(image_path)
-                rgb = raw.postprocess()
-
-                # 轉會為灰階圖像
-                gray_image = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
-
-                # 計算 Laplacian 算子
-                laplacian = cv2.Laplacian(gray_image, cv2.CV_64F)
-                abs_laplacian = cv2.convertScaleAbs(laplacian)
-
-                # 計算平均灰度值和平均拉普拉斯值
-                mean = cv2.mean(gray_image)[0]
-                mean_laplacian = cv2.mean(abs_laplacian)[0]
-
-                # 計算清晰率
-                blur = mean_laplacian / mean
-                blur = blur * 1000
-                if blur > VagueThreshold:
-                    shutil.copy(image_path, ExportFolderPath)
-                    
-                ProcessCount = ProcessCount + 1
-                self.ProcessTextbox.insert("0.0", ("已處理張數: " + str(ProcessCount) + "\t\t檔案名稱: " + filename + "\t\t\t清晰率: " + str(blur)[0:6] + "\n"))
-                self.update()
-
     # Variance(變異數計算)
     def VarianceMethod_event(self):
-        RunningSwitch = True
-        
-        ImportFolderPath = self.ImportEntry.get()
-        if len(ImportFolderPath) < 3:
-            tk.messagebox.showerror("Error", "錯誤訊息: 請選擇Import Folder!")
-            RunningSwitch = False
-        
-        ExportFolderPath = self.ExportEntry.get()
-        if len(ExportFolderPath) < 3:
-            tk.messagebox.showerror("Error", "錯誤訊息: 請選擇Export Folder!")
-            RunningSwitch = False
+        import_folder_path = self.ImportEntry.get()
+        export_folder_path = self.ExportEntry.get()
+        vague_threshold = self.VagueThresholdEntry.get()
 
-        VagueThreshold = self.VagueThresholdEntry.get()
-        if len(VagueThreshold) < 1:
-            tk.messagebox.showerror("Error", "錯誤訊息: 請填寫清晰度!")
-            RunningSwitch = False
+        if len(import_folder_path) < 3:
+            self.show_error_message("請選擇Import Folder!")
+            return
+
+        if len(export_folder_path) < 3:
+            self.show_error_message("請選擇Export Folder!")
+            return
+
+        if len(vague_threshold) < 1:
+            self.show_error_message("請填寫清晰度!")
+            return
         else:
-            VagueThreshold = float(VagueThreshold)
+            vague_threshold = float(vague_threshold)
 
-        if RunningSwitch:
-            ProcessCount = 0
-            for filename in os.listdir(ImportFolderPath):
-                # Path Setting
-                image_path = ImportFolderPath + "/" + filename
-                image_path = image_path.replace("/", "\\\\")
-                
-                # Change RWA image for RGB
-                raw = rawpy.imread(image_path)
-                rgb = raw.postprocess()
+        process_count = 0
+        for filename in os.listdir(import_folder_path):
+            # Path Setting
+            image_path = os.path.join(import_folder_path, filename)
 
-                # 轉換為灰階圖像
-                gray_image = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
+            # Change RAW image to RGB
+            raw = rawpy.imread(image_path)
+            rgb = raw.postprocess()
 
-                # Variance(變異數計算)
-                laplacian = cv2.Laplacian(gray_image, cv2.CV_64F)
-                lap_var = laplacian.var()
+            # Convert to grayscale image
+            gray_image = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
 
-                if lap_var > VagueThreshold:
-                    shutil.copy(image_path, ExportFolderPath)
-                    
-                ProcessCount = ProcessCount + 1
-                self.ProcessTextbox.insert("0.0", ("已處理張數: " + str(ProcessCount) + "\t\t檔案名稱: " + filename + "\t\t\t清晰率: " + str(lap_var)[0:6] + "\n"))
-                self.update()
+            # Variance calculation
+            laplacian = cv2.Laplacian(gray_image, cv2.CV_64F)
+            lap_var = laplacian.var()
 
+            if lap_var > vague_threshold:
+                shutil.copy(image_path, export_folder_path)
+
+            process_count += 1
+            self.update_process_textbox(process_count, filename, lap_var)
+
+    # 錯誤訊息
+    def show_error_message(self, message):
+        tk.messagebox.showerror("Error", f"錯誤訊息: {message}")
+
+    # 更新顯示狀態
+    def update_process_textbox(self, process_count, filename, values):
+        self.ProcessTextbox.insert("0.0", f"已處理張數: {process_count}\t\t檔案名稱: {filename}\t\t\t清晰率: {values:.6f}\n")
+        self.update()
+        
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
+
 
